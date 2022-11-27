@@ -123,7 +123,6 @@ def process(queue_doc, queue_final):
 def generate_and_add_data(queue_doc):
     queue_final = mp.Manager().Queue()
 
-    index = InvertedIndex()
     db = Json()
 
     watcher = mp.Process(target=db.add_mp, args=(queue_final,))
@@ -135,9 +134,3 @@ def generate_and_add_data(queue_doc):
     generate_data.join()
     queue_final.put('kill')
     watcher.join()
-
-    while True:
-        search = input("Enter the word: ")
-        if search == 'kill':
-            break
-        print(index.lookup_query(re.sub(r'[^\w\s]', '', search).lower()))
