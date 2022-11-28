@@ -1,39 +1,15 @@
 import re
 import multiprocessing as mp
-from inverted_index.rw_json import Json
 from json import dumps
 from itertools import repeat
 import time
+from inverted_index.rw_json import Json
+from inverted_index.rw_file import File
 
 STOP_WORDS = ['of', 'the', 'a', 'in', 'on', 'at', 'from', 'an', 'to', 'into', 'with', 'that', 'what', 'where', 'why',
               'when']
 
 THREAD_COUNT = 1
-
-
-def to_divine(doc_id, data, count):
-    new_data = data.replace('.', '').split(' ')
-
-    new_length = len(new_data)
-    if new_length < count:
-        count = new_length
-
-    length = int(new_length/count)
-
-    return [{'id': doc_id + f"/{i+1}", 'data': " ".join(new_data[length*i:length*(i+1)])
-            if i != count-1 else " ".join(new_data[length*i:])} for i in range(count)], count
-
-
-class ReadFiles:
-    def __init__(self, name):
-        self.name = name
-        self.data = ""
-
-    def read(self):
-        with open("documents/" + self.name, 'r', encoding='UTF-8') as f:
-            self.data = f.read()
-
-        return {'id': self.name, 'data': self.data}
 
 
 class Value:
@@ -79,7 +55,7 @@ class InvertedIndex:
         queue.put(self.index)
 
     def lookup_query(self, query):
-        data = Json.read_mp()
+        data = Json.read()
 
         if query in data:
             return data[query]
@@ -87,39 +63,17 @@ class InvertedIndex:
             return {}
 
 
-# def process(queue_doc, queue_final):
-#     index = InvertedIndex()
-#     queue_adding = mp.Manager().Queue()
-#
-#     while True:
-#         thread_count = THREAD_COUNT
-#
-#         doc_name = queue_doc.get()
-#         if doc_name == 'kill':
-#             break
-#         doc = ReadFiles(doc_name).read()
-#
-#         divide_list, thread_count = to_divine(doc["id"], doc["data"], thread_count)
-#
-#         start = time.time()
-#         with mp.Pool(thread_count) as p:
-#             p.starmap(index.index_document, zip(divide_list, repeat(queue_adding)))
-#         print("Time: " + str(time.time() - start))
-#         f_json = queue_adding.get()
-#
-#         while thread_count - 1 != 0:
-#             new_json = queue_adding.get()
-#
-#             for (key, value) in new_json.items():
-#                 if key not in f_json:
-#                     f_json[key] = value
-#                 else:
-#                     f_json[key] = f_json[key] + value
-#
-#             del new_json
-#             thread_count = thread_count - 1
-#
-#         queue_final.put(f_json)
+def to_divine(doc_id, data, count):
+    new_data = data.replace('.', '').split(' ')
+
+    new_length = len(new_data)
+    if new_length < count:
+        count = new_length
+
+    length = int(new_length/count)
+
+    return [{'id': doc_id + f"/{i+1}", 'data': " ".join(new_data[length*i:length*(i+1)])
+            if i != count-1 else " ".join(new_data[length*i:])} for i in range(count)], count
 
 
 def generate_and_add_data(queue_doc):
@@ -128,17 +82,20 @@ def generate_and_add_data(queue_doc):
 
     index = InvertedIndex()
     db = Json()
+    file = File()
 
-    watcher = mp.Process(target=db.add_mp, args=(queue_final,))
+    watcher = mp.Process(target=db.write, args=(queue_final,))
     watcher.start()
 
     while True:
         thread_count = THREAD_COUNT
 
         doc_name = queue_doc.get()
+
         if doc_name == 'kill':
             break
-        doc = ReadFiles(doc_name).read()
+
+        doc = file.read(doc_name)
 
         divide_list, thread_count = to_divine(doc["id"], doc["data"], thread_count)
 
