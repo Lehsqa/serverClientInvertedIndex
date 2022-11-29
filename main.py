@@ -1,4 +1,5 @@
 from inverted_index.inverted_index import generate_and_add_data
+from network.server import server
 from multiprocessing import Queue, Process
 from time import sleep
 
@@ -25,21 +26,9 @@ if __name__ == "__main__":
 
     sleep(1)
 
-    p1 = Process(target=test, args=(queue_doc,))
-    p1.start()
+    # p1 = Process(target=test, args=(queue_doc,))
+    # p1.start()
+    server(queue_doc)
 
     p0.join()
-    p1.join()
-
-    # while True:
-    #     data = input("Enter the name of document: ")
-    #     if data == 'kill':
-    #         queue_doc.put(data)
-    #         break
-    #     queue_doc.put(data)
-
-    # while True:
-    #     search = input("Enter the word: ")
-    #     if search == 'kill':
-    #         break
-    #     print(index.lookup_query(re.sub(r'[^\w\s]', '', search).lower()))
+    # p1.join()

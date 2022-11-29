@@ -9,7 +9,7 @@ from inverted_index.rw_file import File
 STOP_WORDS = ['of', 'the', 'a', 'in', 'on', 'at', 'from', 'an', 'to', 'into', 'with', 'that', 'what', 'where', 'why',
               'when']
 
-THREAD_COUNT = 1
+THREAD_COUNT = 3
 
 
 class Value:
@@ -54,14 +54,6 @@ class InvertedIndex:
 
         queue.put(self.index)
 
-    def lookup_query(self, query):
-        data = Json.read()
-
-        if query in data:
-            return data[query]
-        else:
-            return {}
-
 
 def to_divine(doc_id, data, count):
     new_data = data.replace('.', '').split(' ')
@@ -91,10 +83,8 @@ def generate_and_add_data(queue_doc):
         thread_count = THREAD_COUNT
 
         doc_name = queue_doc.get()
-
         if doc_name == 'kill':
             break
-
         doc = file.read(doc_name)
 
         divide_list, thread_count = to_divine(doc["id"], doc["data"], thread_count)
@@ -104,21 +94,18 @@ def generate_and_add_data(queue_doc):
             p.starmap(index.index_document, zip(divide_list, repeat(queue_adding)))
         print("Time: " + str(time.time() - start))
 
-        f_json = queue_adding.get()
-
+        first_json = queue_adding.get()
         while thread_count - 1 != 0:
-            new_json = queue_adding.get()
-
-            for (key, value) in new_json.items():
-                if key not in f_json:
-                    f_json[key] = value
+            next_json = queue_adding.get()
+            for (key, value) in next_json.items():
+                if key not in first_json:
+                    first_json[key] = value
                 else:
-                    f_json[key] = f_json[key] + value
+                    first_json[key] = first_json[key] + value
 
-            del new_json
             thread_count = thread_count - 1
 
-        queue_final.put(f_json)
+        queue_final.put(first_json)
 
     queue_final.put('kill')
     watcher.join()
