@@ -5,7 +5,7 @@ from json import dumps
 from itertools import repeat
 from inverted_index.rw_json import Json
 from inverted_index.rw_file import File
-from config import STOP_WORDS, THREAD_COUNT
+from config import STOP_WORDS_INVERTED_INDEX, THREAD_COUNT_INVERTED_INDEX
 
 
 class Value:
@@ -32,7 +32,7 @@ class InvertedIndex:
         terms = re.sub(r'[^\w\s]', '', doc['data']).lower().split(' ')
 
         for term in terms:
-            if term in STOP_WORDS:
+            if term in STOP_WORDS_INVERTED_INDEX:
                 continue
             if term in value_dict:
                 term_freq = value_dict[term].freq
@@ -74,7 +74,7 @@ def generate_and_add_data(queue_doc):
     watcher.start()
 
     while True:
-        thread_count = THREAD_COUNT
+        thread_count = THREAD_COUNT_INVERTED_INDEX
         doc_name = queue_doc.get()
         if doc_name == 'kill':
             break
