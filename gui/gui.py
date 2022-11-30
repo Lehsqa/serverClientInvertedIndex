@@ -1,10 +1,17 @@
 import tkinter
 import customtkinter
-from network.client import Client
+import queue
+
+
+queue_commands = queue.Queue()
 
 
 def add_text():
-    text.insert(tkinter.END, entry.get() + '\n\n')
+    command = entry.get()
+    if command == "close":
+        root.destroy()
+    queue_commands.put(command)
+
 
 customtkinter.set_appearance_mode("dark")
 customtkinter.set_default_color_theme("dark-blue")
@@ -28,5 +35,3 @@ text_frame.pack(pady=10)
 
 text = tkinter.Text(text_frame, height=20, width=69, bd=0, bg="#292929", fg="silver")
 text.pack(pady=10, padx=10)
-
-root.mainloop()
