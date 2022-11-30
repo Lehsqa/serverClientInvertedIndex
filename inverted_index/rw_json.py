@@ -6,7 +6,7 @@ read_lock = RLock()
 
 class Json:
     @staticmethod
-    def read_mp():
+    def read():
         with read_lock:
             with open("inverted_index/buffer", 'r', encoding='UTF-8') as infile:
                 try:
@@ -15,14 +15,14 @@ class Json:
                     return {}
 
     @classmethod
-    def add_mp(cls, queue):
+    def write(cls, queue):
         while True:
             data = queue.get()
 
             if data == 'kill':
                 break
 
-            old_data = cls.read_mp()
+            old_data = cls.read()
 
             with open("inverted_index/buffer", 'w') as outfile:
                 for (key, value) in data.items():
