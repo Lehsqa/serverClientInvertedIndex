@@ -1,41 +1,60 @@
 import multiprocessing
 import socket
+import logging
 import re
 import ast
 from inverted_index.rw_json import Json
 
 
-def lookup_query(word):
+def lookup_query(word: str, file=None):
     data = Json.read()
     word = re.sub(r'[^\w\s]', '', word).lower()
     count = 0
 
     if word in data:
-        for i in data[word]:
-            count = count + ast.literal_eval(i).get("freq")
+        if file is None:
+            for i in data[word]:
+                count = count + ast.literal_eval(i).get("freq")
+        else:
+            for i in data[word]:
+                data = ast.literal_eval(i)
+                if data.get("doc_id")[0] == file:
+                    count = count + data.get("freq")
+                else:
+                    continue
         return str(count)
     else:
         return "0"
 
 
-def handle(connection, address, queue):
-    import logging
+def handle(connection, address: str, queue):
     logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger("process-%r" % (address,))
+    logger = logging.getLogger(f"process-{(address,)}")
     try:
-        logger.debug("Connected %r at %r", connection, address)
+        logger.debug(f"Connected {connection} at {address}")
         while True:
             data = connection.recv(1024).decode("utf-8")
-            if data[:5] == "find:":
-                connection.sendall(bytes(lookup_query(data[5:]), 'utf-8'))
-                continue
-            queue.put(data)
-            if data == "kill":
+            if data[:13] == "upload_file: ":
+                queue.put(data[13:])
+                logger.debug(f"Received command '{data[:11]}' with data '{data[13:]}'")
+                connection.sendall(bytes("File was upload", 'utf-8'))
+                logger.debug("Sent data")
+            elif data[:10] == "find_all: ":
+                logger.debug(f"Received command '{data[:8]}' with data '{data[10:]}'")
+                connection.sendall(bytes(lookup_query(data[10:]), 'utf-8'))
+                logger.debug("Sent data")
+            elif data[:10] == "find_one: ":
+                logger.debug(f"Received command '{data[:8]}' with data '{data[10:]}'")
+                new_data = data[10:].split(' ')
+                connection.sendall(bytes(lookup_query(new_data[0], new_data[1]), 'utf-8'))
+                logger.debug("Sent data")
+            elif data == "close":
                 logger.debug("Socket closed remotely")
                 break
-            logger.debug("Received data %r", data)
-            connection.sendall(bytes(data, 'utf-8'))
-            logger.debug("Sent data")
+            else:
+                logger.debug("Received wrong command")
+                connection.sendall(bytes("Wrong command, try again", 'utf-8'))
+                logger.debug("Sent data")
     except:
         logger.exception("Problem handling request")
     finally:
@@ -44,15 +63,14 @@ def handle(connection, address, queue):
 
 
 class Server(object):
-    def __init__(self, hostname, port):
-        import logging
+    def __init__(self, hostname: str, port: int):
         self.logger = logging.getLogger("server")
         self.hostname = hostname
         self.port = port
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def start(self, queue):
         self.logger.debug("listening")
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((self.hostname, self.port))
         self.socket.listen()
 
@@ -66,7 +84,6 @@ class Server(object):
 
 
 def server(queue):
-    import logging
     logging.basicConfig(level=logging.DEBUG)
     server = Server("0.0.0.0", 9000)
     try:
