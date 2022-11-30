@@ -41,12 +41,12 @@ def handle(connection, address: str, queue):
                 logger.debug("Sent data")
             elif data[:10] == "find_all: ":
                 logger.debug(f"Received command '{data[:8]}' with data '{data[10:]}'")
-                connection.sendall(bytes(lookup_query(data[10:]), 'utf-8'))
+                connection.sendall(bytes("All: " + lookup_query(data[10:]), 'utf-8'))
                 logger.debug("Sent data")
             elif data[:10] == "find_one: ":
                 logger.debug(f"Received command '{data[:8]}' with data '{data[10:]}'")
                 new_data = data[10:].split(' ')
-                connection.sendall(bytes(lookup_query(new_data[0], new_data[1]), 'utf-8'))
+                connection.sendall(bytes(new_data[1] + ": " + lookup_query(new_data[0], new_data[1]), 'utf-8'))
                 logger.debug("Sent data")
             elif data == "close":
                 logger.debug("Socket closed remotely")
