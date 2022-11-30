@@ -21,4 +21,3 @@ class Client(object):
             result = self.socket.recv(1024).decode('utf-8')
             text.insert(END, data + '\n')
             text.insert(END, result + '\n\n')
-            print(result)
