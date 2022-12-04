@@ -1,7 +1,12 @@
 from inverted_index.inverted_index import generate_and_add_data
 from network.server import server
-from multiprocessing import Queue, Process
-from time import sleep
+from multiprocessing import Queue, Process, RLock
+from config import THREAD_COUNT_FILES
+from time import sleep, time
+
+
+read_lock = RLock()
+write_lock = RLock()
 
 
 def test(queue):
@@ -11,24 +16,38 @@ def test(queue):
     queue.put("doc2")
     print("Doc2")
     # sleep(1)
-    queue.put("doc3")
-    print("Doc3")
+    # queue.put("doc3")
+    # print("Doc3")
     # sleep(1)
     queue.put("kill")
+    # queue.put("kill")
     print("kill")
+
+
+def new_test(queue, count):
+    for i in range(100):
+        queue.put(f"doc{i+1}")
+    for _ in range(count):
+        queue.put("kill")
 
 
 if __name__ == "__main__":
     queue_doc = Queue()
+    process_list = list()
 
-    p0 = Process(target=generate_and_add_data, args=(queue_doc,))
-    p0.start()
+    # test(queue_doc)
+    # new_test(queue_doc, THREAD_COUNT_FILES)
+
+    start = time()
+    for _ in range(THREAD_COUNT_FILES):
+        p = Process(target=generate_and_add_data, args=(queue_doc, read_lock, write_lock))
+        p.start()
+        process_list.append(p)
 
     sleep(1)
 
-    # p1 = Process(target=test, args=(queue_doc,))
-    # p1.start()
     server(queue_doc)
 
-    p0.join()
-    # p1.join()
+    for p in process_list:
+        p.join()
+    # print("Time: " + str(time() - start))
