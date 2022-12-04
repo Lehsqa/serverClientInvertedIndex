@@ -1,5 +1,4 @@
 import re
-import time
 from multiprocessing import Process, Manager, Pool
 from json import dumps
 from itertools import repeat
@@ -62,7 +61,7 @@ def to_divine(doc_id: str, data: str, count: int):
             if i != count-1 else " ".join(new_data[length*i:])} for i in range(count)], count
 
 
-def generate_and_add_data(queue_doc):
+def generate_and_add_data(queue_doc, read_lock, write_lock):
     queue_final = Manager().Queue()
     queue_adding = Manager().Queue()
 
@@ -70,7 +69,7 @@ def generate_and_add_data(queue_doc):
     db = Json()
     file = File()
 
-    watcher = Process(target=db.write, args=(queue_final,))
+    watcher = Process(target=db.write, args=(queue_final, read_lock, write_lock))
     watcher.start()
 
     while True:
@@ -79,12 +78,14 @@ def generate_and_add_data(queue_doc):
         if doc_name == 'kill':
             break
         doc = file.read(doc_name)
-        divide_list, thread_count = to_divine(doc["id"], doc["data"], thread_count)
 
-        start = time.time()
+        if thread_count == 1:
+            divide_list = [{'id': doc["id"], 'data': doc["data"].replace('.', '')}]
+        else:
+            divide_list, thread_count = to_divine(doc["id"], doc["data"], thread_count)
+
         with Pool(thread_count) as p:
             p.starmap(index.index_document, zip(divide_list, repeat(queue_adding)))
-        print("Time: " + str(time.time() - start))
 
         first_json = queue_adding.get()
         while thread_count - 1 != 0:

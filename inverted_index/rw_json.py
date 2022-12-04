@@ -1,12 +1,9 @@
 from json import load, dump, decoder
-from multiprocessing import RLock
-
-read_lock = RLock()
 
 
 class Json:
     @staticmethod
-    def read():
+    def read(read_lock):
         with read_lock:
             with open("inverted_index/buffer", 'r', encoding='UTF-8') as infile:
                 try:
@@ -15,20 +12,21 @@ class Json:
                     return {}
 
     @classmethod
-    def write(cls, queue):
-        while True:
-            data = queue.get()
+    def write(cls, queue, read_lock, write_lock):
+        with write_lock:
+            while True:
+                data = queue.get()
 
-            if data == 'kill':
-                break
+                if data == 'kill':
+                    break
 
-            old_data = cls.read()
+                old_data = cls.read(read_lock)
 
-            with open("inverted_index/buffer", 'w') as outfile:
-                for (key, value) in data.items():
-                    if key not in old_data:
-                        old_data[key] = value
-                    else:
-                        old_data[key] = old_data[key] + value
-                dump(old_data, outfile)
-                outfile.flush()
+                with open("inverted_index/buffer", 'w') as outfile:
+                    for (key, value) in data.items():
+                        if key not in old_data:
+                            old_data[key] = value
+                        else:
+                            old_data[key] = old_data[key] + value
+                    dump(old_data, outfile)
+                    outfile.flush()

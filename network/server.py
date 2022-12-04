@@ -27,6 +27,23 @@ def lookup_query(word: str, file=None):
         return "0"
 
 
+def file_list(word: str):
+    data = Json.read()
+    word = re.sub(r'[^\w\s]', '', word).lower()
+    lst = list()
+
+    if word in data:
+        for i in data[word]:
+            file = ast.literal_eval(i).get("doc_id")[0]
+            if file not in lst:
+                lst.append(file)
+            else:
+                continue
+        return str(lst)
+    else:
+        return "Null"
+
+
 def handle(connection, address: str, queue):
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(f"process-{(address,)}")
@@ -47,6 +64,10 @@ def handle(connection, address: str, queue):
                 logger.debug(f"Received command '{data[:8]}' with data '{data[10:]}'")
                 new_data = data[10:].split(' ')
                 connection.sendall(bytes(new_data[1] + ": " + lookup_query(new_data[0], new_data[1]), 'utf-8'))
+                logger.debug("Sent data")
+            elif data[:12] == "where_find: ":
+                logger.debug(f"Received command '{data[:10]}' with data '{data[12:]}'")
+                connection.sendall(bytes(file_list(data[12:]), 'utf-8'))
                 logger.debug("Sent data")
             elif data == "close":
                 logger.debug("Socket closed remotely")
