@@ -1,5 +1,5 @@
 import re
-from multiprocessing import Process, Manager, Pool
+from multiprocessing import Manager, Pool
 from json import dumps
 from itertools import repeat
 from inverted_index.rw_json import Json
@@ -61,16 +61,12 @@ def to_divine(doc_id: str, data: str, count: int):
             if i != count-1 else " ".join(new_data[length*i:])} for i in range(count)], count
 
 
-def generate_and_add_data(queue_doc, read_lock, write_lock):
-    queue_final = Manager().Queue()
+def generate_and_add_data(queue_doc, write_lock):
     queue_adding = Manager().Queue()
 
     index = InvertedIndex()
     db = Json()
     file = File()
-
-    watcher = Process(target=db.write, args=(queue_final, read_lock, write_lock))
-    watcher.start()
 
     while True:
         thread_count = THREAD_COUNT_INVERTED_INDEX
@@ -96,7 +92,8 @@ def generate_and_add_data(queue_doc, read_lock, write_lock):
                 else:
                     first_json[key] = first_json[key] + value
             thread_count = thread_count - 1
-        queue_final.put(first_json)
+        db.write(first_json, write_lock)
 
-    queue_final.put('kill')
-    watcher.join()
+        del first_json
+        del divide_list
+        del doc
