@@ -5,7 +5,6 @@ from config import THREAD_COUNT_FILES
 from time import sleep, time
 
 
-read_lock = RLock()
 write_lock = RLock()
 
 
@@ -36,11 +35,11 @@ if __name__ == "__main__":
     process_list = list()
 
     # test(queue_doc)
-    # new_test(queue_doc, THREAD_COUNT_FILES)
+    new_test(queue_doc, THREAD_COUNT_FILES)
 
-    start = time()
+    # start = time()
     for _ in range(THREAD_COUNT_FILES):
-        p = Process(target=generate_and_add_data, args=(queue_doc, read_lock, write_lock))
+        p = Process(target=generate_and_add_data, args=(queue_doc, write_lock))
         p.start()
         process_list.append(p)
 
