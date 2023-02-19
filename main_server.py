@@ -35,7 +35,7 @@ if __name__ == "__main__":
     process_list = list()
 
     # test(queue_doc)
-    new_test(queue_doc, THREAD_COUNT_FILES)
+    # new_test(queue_doc, THREAD_COUNT_FILES)
 
     # start = time()
     for _ in range(THREAD_COUNT_FILES):
