@@ -19,5 +19,8 @@ class Client(object):
                 self.socket.close()
                 break
             result = self.socket.recv(1024).decode('utf-8')
-            text.insert(END, data + '\n')
-            text.insert(END, result + '\n\n')
+            if text is None:
+                print(result + '\n')
+            else:
+                text.insert(END, data + '\n')
+                text.insert(END, result + '\n\n')
